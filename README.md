@@ -75,6 +75,29 @@ If the tool isn't working properly:
 3. Check that you've granted all necessary permissions
 4. Try restarting both Claude and ChatGPT apps
 
+## Optimizations
+
+This fork includes several significant improvements to the original implementation:
+
+### Enhanced AppleScript Robustness
+
+#### Conversation Retrieval
+- Added multiple UI element targeting approaches to handle ChatGPT UI changes
+- Implemented better error detection with specific error messages
+- Added fallback mechanisms using accessibility attributes
+- Improved timeout handling with appropriate delays
+
+#### Response Handling
+- Replaced fixed waiting times with dynamic response detection
+- Added intelligent completion detection that recognizes when ChatGPT has finished typing
+- Implemented text stability detection (waits until text stops changing)
+- Added response extraction logic to isolate just the relevant response text
+- Improved error handling with detailed error messages
+- Added post-processing to clean up UI elements from responses
+- Implemented incomplete response detection to warn about potential cutoffs
+
+These optimizations make the integration more reliable across different scenarios, more resilient to UI changes in the ChatGPT application, and better at handling longer response times without message cutoff issues.
+
 ## License
 
 MIT

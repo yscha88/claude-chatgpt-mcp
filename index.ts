@@ -88,6 +88,14 @@ async function askChatGPT(
 ): Promise<string> {
 	await checkChatGPTAccess();
 	try {
+		// Function to properly encode text for AppleScript, including handling of Chinese characters
+		const encodeForAppleScript = (text: string): string => {
+			// Only escape double quotes, leave other characters as is
+			return text.replace(/"/g, '\\"');
+		};
+
+		const encodedPrompt = encodeForAppleScript(prompt);
+		
 		const script = `
       tell application "ChatGPT"
         activate
@@ -109,8 +117,11 @@ async function askChatGPT(
             keystroke (ASCII character 8) -- Delete key
             delay 0.5
             
-            -- Type the prompt and send it
-            keystroke "${prompt.replace(/"/g, '\\"')}"
+            -- Set the clipboard to the prompt text
+            set the clipboard to "${encodedPrompt}"
+            
+            -- Paste the prompt and send it
+            keystroke "v" using {command down}
             delay 0.5
             keystroke return
             
