@@ -1,0 +1,31 @@
+# Smithery configuration for claude-chatgpt-mcp
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      logLevel:
+        type: string
+        enum: [error, warn, info, debug]
+        description: "Logging level for the ChatGPT MCP tool"
+        default: "info"
+    additionalProperties: false
+  commandFunction: |
+    function(config) {
+      const env = { NODE_ENV: 'production' };
+      
+      if (config && config.logLevel) {
+        env.LOG_LEVEL = config.logLevel;
+      }
+      
+      return {
+        command: 'node',
+        args: ['dist/index.js'],
+        env: env
+      };
+    }
+
+# Build configuration
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .
