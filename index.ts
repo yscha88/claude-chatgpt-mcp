@@ -82,7 +82,6 @@ async function checkChatGPTAccess(): Promise<boolean> {
 }
 
 // Function to send a prompt to ChatGPT
-
 async function askChatGPT(
 	prompt: string,
 	conversationId?: string,
@@ -105,32 +104,117 @@ async function askChatGPT(
             `
 								: ""
 						}
+            -- Clear any existing text in the input field
+            keystroke "a" using {command down}
+            keystroke (ASCII character 8) -- Delete key
+            delay 0.5
+            
+            -- Type the prompt and send it
             keystroke "${prompt.replace(/"/g, '\\"')}"
             delay 0.5
             keystroke return
-            delay 15
-            set frontWin to front window
-            set allUIElements to entire contents of frontWin
-            set conversationText to {}
-            repeat with e in allUIElements
-              try
-                if (role of e) is "AXStaticText" then
-                  set end of conversationText to (description of e)
-                end if
-              end try
-            end repeat
-            if (count of conversationText) = 0 then
-              return "No AXStaticText elements with readable text found."
-            else
+            
+            -- Wait for the response with dynamic detection
+            set maxWaitTime to 120 -- Maximum wait time in seconds
+            set waitInterval to 1 -- Check interval in seconds
+            set totalWaitTime to 0
+            set previousText to ""
+            set stableCount to 0
+            set requiredStableChecks to 3 -- Number of consecutive stable checks required
+            
+            repeat while totalWaitTime < maxWaitTime
+              delay waitInterval
+              set totalWaitTime to totalWaitTime + waitInterval
+              
+              -- Get current text
+              set frontWin to front window
+              set allUIElements to entire contents of frontWin
+              set conversationText to {}
+              repeat with e in allUIElements
+                try
+                  if (role of e) is "AXStaticText" then
+                    set end of conversationText to (description of e)
+                  end if
+                end try
+              end repeat
+              
               set AppleScript's text item delimiters to linefeed
-              return conversationText as text
+              set currentText to conversationText as text
+              
+              -- Check if text has stabilized (not changing anymore)
+              if currentText is equal to previousText then
+                set stableCount to stableCount + 1
+                if stableCount ≥ requiredStableChecks then
+                  -- Text has been stable for multiple checks, assume response is complete
+                  exit repeat
+                end if
+              else
+                -- Text changed, reset stable count
+                set stableCount to 0
+                set previousText to currentText
+              end if
+              
+              -- Check for response completion indicators
+              if currentText contains "▍" then
+                -- ChatGPT is still typing (blinking cursor indicator)
+                set stableCount to 0
+              else if currentText contains "Regenerate" or currentText contains "Continue generating" then
+                -- Response likely complete if these UI elements are visible
+                set stableCount to stableCount + 1
+              end if
+            end repeat
+            
+            -- Final check for text content
+            if (count of conversationText) = 0 then
+              return "No response text found. ChatGPT may still be processing or encountered an error."
+            else
+              -- Extract just the latest response
+              set responseText to ""
+              try
+                -- Attempt to find the latest response by looking for patterns
+                set AppleScript's text item delimiters to linefeed
+                set fullText to conversationText as text
+                
+                -- Look for the prompt in the text to find where the response starts
+                set promptPattern to "${prompt.replace(/"/g, '\\"').replace(/\n/g, ' ')}"
+                if fullText contains promptPattern then
+                  set promptPos to offset of promptPattern in fullText
+                  if promptPos > 0 then
+                    -- Get text after the prompt
+                    set responseText to text from (promptPos + (length of promptPattern)) to end of fullText
+                  end if
+                end if
+                
+                -- If we couldn't find the prompt, return the full text
+                if responseText is "" then
+                  set responseText to fullText
+                end if
+                
+                return responseText
+              on error
+                -- Fallback to returning all text if parsing fails
+                return conversationText as text
+              end try
             end if
           end tell
         end tell
       end tell
     `;
 		const result = await runAppleScript(script);
-		return result;
+		
+		// Post-process the result to clean up any UI text that might have been captured
+		let cleanedResult = result
+			.replace(/Regenerate( response)?/g, '')
+			.replace(/Continue generating/g, '')
+			.replace(/▍/g, '')
+			.trim();
+			
+		// If the result seems too short or incomplete, it might be cut off
+		if (cleanedResult.length < 20 && !cleanedResult.endsWith('.') && !cleanedResult.endsWith('!') && !cleanedResult.endsWith('?')) {
+			console.warn("Warning: ChatGPT response seems unusually short, it might be incomplete");
+		}
+		
+		return cleanedResult;
 	} catch (error) {
 		console.error("Error interacting with ChatGPT:", error);
 		throw new Error(
@@ -143,31 +227,66 @@ async function askChatGPT(
 
 // Function to get available conversations
 async function getConversations(): Promise<string[]> {
-	await checkChatGPTAccess();
-
 	try {
+		// Run AppleScript to get conversations from ChatGPT app
 		const result = await runAppleScript(`
       tell application "ChatGPT"
+        -- Check if ChatGPT is running
+        if not (exists (processes where name is "ChatGPT")) then
+          return "ChatGPT is not running"
+        end if
+        
+        -- Activate ChatGPT and give it time to respond
         activate
-        delay 1
-
+        delay 1.5
+        
         tell application "System Events"
           tell process "ChatGPT"
-            -- Try to get conversation titles
+            -- Check if ChatGPT window exists
+            if not (exists window 1) then
+              return "No ChatGPT window found"
+            end if
+            
+            -- Try to get conversation titles with multiple approaches
             set conversationsList to {}
-
+            
             try
-              set chatButtons to buttons of group 1 of group 1 of window 1
-              repeat with chatButton in chatButtons
-                set buttonName to name of chatButton
-                if buttonName is not "New chat" then
-                  set end of conversationsList to buttonName
-                end if
-              end repeat
-            on error
-              set conversationsList to {"Unable to retrieve conversations"}
+              -- First attempt: try buttons in group 1 of group 1
+              if exists group 1 of group 1 of window 1 then
+                set chatButtons to buttons of group 1 of group 1 of window 1
+                repeat with chatButton in chatButtons
+                  set buttonName to name of chatButton
+                  if buttonName is not "New chat" then
+                    set end of conversationsList to buttonName
+                  end if
+                end repeat
+              end if
+              
+              -- If we didn't find any conversations, try an alternative approach
+              if (count of conversationsList) is 0 then
+                -- Try to find UI elements by accessibility description
+                set uiElements to UI elements of window 1
+                repeat with elem in uiElements
+                  try
+                    if exists (attribute "AXDescription" of elem) then
+                      set elemDesc to value of attribute "AXDescription" of elem
+                      if elemDesc is not "New chat" and elemDesc is not "" then
+                        set end of conversationsList to elemDesc
+                      end if
+                    end if
+                  end try
+                end repeat
+              end if
+              
+              -- If still no conversations found, return a specific message
+              if (count of conversationsList) is 0 then
+                return "No conversations found"
+              end if
+            on error errMsg
+              -- Return error message for debugging
+              return "Error: " & errMsg
             end try
-
+            
             return conversationsList
           end tell
         end tell
@@ -175,11 +294,25 @@ async function getConversations(): Promise<string[]> {
     `);
 
 		// Parse the AppleScript result into an array
+		if (result === "ChatGPT is not running") {
+			console.error("ChatGPT application is not running");
+			return ["ChatGPT is not running"];
+		} else if (result === "No ChatGPT window found") {
+			console.error("No ChatGPT window found");
+			return ["No ChatGPT window found"];
+		} else if (result === "No conversations found") {
+			console.error("No conversations found in ChatGPT");
+			return ["No conversations found"];
+		} else if (result.startsWith("Error:")) {
+			console.error(result);
+			return [result];
+		}
+		
 		const conversations = result.split(", ");
 		return conversations;
 	} catch (error) {
 		console.error("Error getting ChatGPT conversations:", error);
-		return ["Error retrieving conversations"];
+		return ["Error retrieving conversations: " + (error instanceof Error ? error.message : String(error))];
 	}
 }
 
@@ -284,4 +417,3 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error("ChatGPT MCP Server running on stdio");
-
