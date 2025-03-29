@@ -17,7 +17,35 @@ This is a Model Context Protocol (MCP) tool that allows Claude to interact with 
 - [Bun](https://bun.sh/) installed
 - [Claude desktop app](https://claude.ai/desktop) installed
 
-### Installation Steps
+### NPX Installation (Recommended)
+
+You can use NPX to run this tool without cloning the repository:
+
+- **Install and run the package using NPX:**
+
+```bash
+npx claude-chatgpt-mcp
+```
+
+- **Configure Claude Desktop:**
+
+Edit your `claude_desktop_config.json` file (located at `~/Library/Application Support/Claude/claude_desktop_config.json`) to include this tool:
+
+```json
+"chatgpt-mcp": {
+  "command": "npx",
+  "args": ["claude-chatgpt-mcp"]
+}
+```
+
+- **Restart the Claude Desktop app**
+
+- **Grant necessary permissions:**
+  - Go to System Preferences > Privacy & Security > Privacy
+  - Give Terminal (or iTerm) access to Accessibility features
+  - You may see permission prompts when the tool is first used
+
+### Manual Installation
 
 1. Clone this repository:
 
