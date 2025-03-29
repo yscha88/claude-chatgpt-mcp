@@ -96,6 +96,14 @@ async function askChatGPT(
 
 		const encodedPrompt = encodeForAppleScript(prompt);
 		
+		// Save original clipboard content
+		const saveClipboardScript = `
+			set savedClipboard to the clipboard
+			return savedClipboard
+		`;
+		const originalClipboard = await runAppleScript(saveClipboardScript);
+		const encodedOriginalClipboard = encodeForAppleScript(originalClipboard);
+		
 		const script = `
       tell application "ChatGPT"
         activate
@@ -213,6 +221,9 @@ async function askChatGPT(
     `;
 		const result = await runAppleScript(script);
 		
+		// Restore original clipboard content
+		await runAppleScript(`set the clipboard to "${encodedOriginalClipboard}"`);
+		
 		// Post-process the result to clean up any UI text that might have been captured
 		let cleanedResult = result
 			.replace(/Regenerate( response)?/g, '')
@@ -220,9 +231,21 @@ async function askChatGPT(
 			.replace(/▍/g, '')
 			.trim();
 			
-		// If the result seems too short or incomplete, it might be cut off
-		if (cleanedResult.length < 20 && !cleanedResult.endsWith('.') && !cleanedResult.endsWith('!') && !cleanedResult.endsWith('?')) {
-			console.warn("Warning: ChatGPT response seems unusually short, it might be incomplete");
+		// More context-aware incomplete response detection
+		const isLikelyComplete = 
+			cleanedResult.length > 50 || // Longer responses are likely complete
+			cleanedResult.endsWith('.') || 
+			cleanedResult.endsWith('!') || 
+			cleanedResult.endsWith('?') ||
+			cleanedResult.endsWith(':') ||
+			cleanedResult.endsWith(')') ||
+			cleanedResult.endsWith('}') ||
+			cleanedResult.endsWith(']') ||
+			cleanedResult.includes('\n\n') || // Multiple paragraphs suggest completeness
+			/^[A-Z].*[.!?]$/.test(cleanedResult); // Complete sentence structure
+			
+		if (cleanedResult.length > 0 && !isLikelyComplete) {
+			console.warn("Warning: ChatGPT response may be incomplete");
 		}
 		
 		return cleanedResult;
@@ -307,23 +330,23 @@ async function getConversations(): Promise<string[]> {
 		// Parse the AppleScript result into an array
 		if (result === "ChatGPT is not running") {
 			console.error("ChatGPT application is not running");
-			return ["ChatGPT is not running"];
+			throw new Error("ChatGPT application is not running");
 		} else if (result === "No ChatGPT window found") {
 			console.error("No ChatGPT window found");
-			return ["No ChatGPT window found"];
+			throw new Error("No ChatGPT window found");
 		} else if (result === "No conversations found") {
 			console.error("No conversations found in ChatGPT");
-			return ["No conversations found"];
+			return []; // Return empty array instead of error message
 		} else if (result.startsWith("Error:")) {
 			console.error(result);
-			return [result];
+			throw new Error(result);
 		}
 		
 		const conversations = result.split(", ");
 		return conversations;
 	} catch (error) {
 		console.error("Error getting ChatGPT conversations:", error);
-		return ["Error retrieving conversations: " + (error instanceof Error ? error.message : String(error))];
+		throw new Error("Error retrieving conversations: " + (error instanceof Error ? error.message : String(error)));
 	}
 }
 
