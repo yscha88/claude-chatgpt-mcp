@@ -12,7 +12,11 @@ startCommand:
     additionalProperties: false
   commandFunction: |
     function(config) {
-      const env = { NODE_ENV: 'production' };
+      const env = { 
+        NODE_ENV: 'production',
+        // Set ephemeral storage settings for serverless environment
+        EPHEMERAL_STORAGE: 'true'
+      };
       
       if (config && config.logLevel) {
         env.LOG_LEVEL = config.logLevel;
@@ -29,3 +33,13 @@ startCommand:
 build:
   dockerfile: Dockerfile
   dockerBuildPath: .
+
+# Metadata for Smithery.ai
+metadata:
+  name: "Claude ChatGPT MCP Tool"
+  description: "A Model Context Protocol (MCP) tool that allows Claude to interact with the ChatGPT desktop app on macOS"
+  version: "1.0.1"
+  author: "Syed Azhar"
+  license: "MIT"
+  repository: "https://github.com/syedazharmbnr1/claude-chatgpt-mcp"
+  keywords: ["mcp", "claude", "chatgpt", "mac"]

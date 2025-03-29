@@ -17,5 +17,8 @@ RUN npm run build
 # Set executable permissions for the entry point
 RUN chmod +x dist/index.js
 
+# Expose port for WebSocket transport
+EXPOSE 8080
+
 # Start the MCP server
 CMD ["node", "dist/index.js"]
