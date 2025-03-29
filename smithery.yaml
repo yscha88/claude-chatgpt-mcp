@@ -13,9 +13,7 @@ startCommand:
   commandFunction: |
     function(config) {
       const env = { 
-        NODE_ENV: 'production',
-        // Set ephemeral storage settings for serverless environment
-        EPHEMERAL_STORAGE: 'true'
+        NODE_ENV: 'production'
       };
       
       if (config && config.logLevel) {

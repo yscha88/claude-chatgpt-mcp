@@ -9,14 +9,6 @@ import {
 import { runAppleScript } from "run-applescript";
 import { run } from "@jxa/run";
 
-// Import WebSocket transport if available
-let WebSocketServerTransport;
-try {
-  WebSocketServerTransport = require("@modelcontextprotocol/sdk/server/ws.js").WebSocketServerTransport;
-} catch (error) {
-  console.error("WebSocket transport not available, falling back to STDIO only");
-}
-
 // Define the ChatGPT tool
 const CHATGPT_TOOL: Tool = {
 	name: "chatgpt",
@@ -456,12 +448,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 	}
 });
 
-let transport;
-if (WebSocketServerTransport) {
-  transport = new WebSocketServerTransport({ port: 8080 });
-} else {
-  transport = new StdioServerTransport();
-}
+const transport = new StdioServerTransport();
 
 await server.connect(transport);
-console.error("ChatGPT MCP Server running on " + (transport instanceof StdioServerTransport ? "stdio" : "WebSocket"));
+console.error("ChatGPT MCP Server running on stdio");
