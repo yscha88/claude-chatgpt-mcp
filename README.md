@@ -17,7 +17,35 @@ This is a Model Context Protocol (MCP) tool that allows Claude to interact with 
 - [Bun](https://bun.sh/) installed
 - [Claude desktop app](https://claude.ai/desktop) installed
 
-### Installation Steps
+### NPX Installation (Recommended)
+
+You can use NPX to run this tool without cloning the repository:
+
+- **Install and run the package using NPX:**
+
+```bash
+npx claude-chatgpt-mcp
+```
+
+- **Configure Claude Desktop:**
+
+Edit your `claude_desktop_config.json` file (located at `~/Library/Application Support/Claude/claude_desktop_config.json`) to include this tool:
+
+```json
+"chatgpt-mcp": {
+  "command": "npx",
+  "args": ["claude-chatgpt-mcp"]
+}
+```
+
+- **Restart the Claude Desktop app**
+
+- **Grant necessary permissions:**
+  - Go to System Preferences > Privacy & Security > Privacy
+  - Give Terminal (or iTerm) access to Accessibility features
+  - You may see permission prompts when the tool is first used
+
+### Manual Installation
 
 1. Clone this repository:
 
@@ -74,6 +102,29 @@ If the tool isn't working properly:
 2. Verify the path to bun in your claude_desktop_config.json is correct
 3. Check that you've granted all necessary permissions
 4. Try restarting both Claude and ChatGPT apps
+
+## Optimizations
+
+This fork includes several significant improvements to the original implementation:
+
+### Enhanced AppleScript Robustness
+
+#### Conversation Retrieval
+- Added multiple UI element targeting approaches to handle ChatGPT UI changes
+- Implemented better error detection with specific error messages
+- Added fallback mechanisms using accessibility attributes
+- Improved timeout handling with appropriate delays
+
+#### Response Handling
+- Replaced fixed waiting times with dynamic response detection
+- Added intelligent completion detection that recognizes when ChatGPT has finished typing
+- Implemented text stability detection (waits until text stops changing)
+- Added response extraction logic to isolate just the relevant response text
+- Improved error handling with detailed error messages
+- Added post-processing to clean up UI elements from responses
+- Implemented incomplete response detection to warn about potential cutoffs
+
+These optimizations make the integration more reliable across different scenarios, more resilient to UI changes in the ChatGPT application, and better at handling longer response times without message cutoff issues.
 
 ## License
 
