@@ -264,16 +264,18 @@ async function getConversations(): Promise<string[]> {
 	try {
 		// Run AppleScript to get conversations from ChatGPT app
 		const result = await runAppleScript(`
-      tell application "ChatGPT"
-        -- Check if ChatGPT is running
-        if not (exists (processes where name is "ChatGPT")) then
+      -- Check if ChatGPT is running
+      tell application "System Events"
+        if not (application process "ChatGPT" exists) then
           return "ChatGPT is not running"
         end if
-        
+      end tell
+
+      tell application "ChatGPT"
         -- Activate ChatGPT and give it time to respond
         activate
         delay 1.5
-        
+
         tell application "System Events"
           tell process "ChatGPT"
             -- Check if ChatGPT window exists
