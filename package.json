@@ -1,46 +1,37 @@
 {
   "name": "claude-chatgpt-mcp",
-  "version": "1.0.1",
-  "main": "dist/index.js",
+  "version": "1.1.0",
+  "module": "index.ts",
   "type": "module",
-  "description": "A Claude MCP tool to interact with the ChatGPT desktop app on macOS",
+  "description": "A Claude MCP tool to interact with the ChatGPT desktop app on macOS and Windows",
   "author": "Syed Azhar",
   "license": "MIT",
-  "bin": {
-    "claude-chatgpt-mcp": "dist/index.js"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/syedazharmbnr1/claude-chatgpt-mcp.git"
   },
-  "keywords": [
-    "mcp",
-    "claude",
-    "chatgpt",
-    "mac"
-  ],
+  "keywords": ["mcp","claude","chatgpt","mac","windows"],
   "scripts": {
     "dev": "bun run index.ts",
-    "build": "tsc",
-    "prepare": "npm run build",
-    "start": "node dist/index.js"
+    "start": "bun run index.ts",
+    "win:setup": "powershell -ExecutionPolicy Bypass -File ./setup.ps1",
+    "win:run": "powershell -ExecutionPolicy Bypass -File ./run.ps1",
+    "mac:setup": "./setup.sh",
+    "mac:run": "./run.sh"
+  },
+  "bin": {
+    "claude-chatgpt-mcp": "./index.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0"
+  },
+  "optionalDependencies": {
     "@jxa/global-type": "^1.3.6",
     "@jxa/run": "^1.3.6",
-    "@modelcontextprotocol/sdk": "^1.5.0",
     "run-applescript": "^7.0.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "^22.13.4",
-    "typescript": "^5.4.2"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "engines": {
-    "node": ">=18"
+    "@types/node": "^22.13.4"
   }
 }
